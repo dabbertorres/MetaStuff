@@ -42,17 +42,18 @@ using nonconst_ref_getter_func_ptr_t = T& (Class::*)();
 template <typename MemberType>
 using get_member_type = typename std::decay_t<MemberType>::member_type;
 
+// Dummy base definition
+template <typename Class, typename T, typename...>
+class Member;
+
+// member ptr definition
 template <typename Class, typename T>
-class Member {
+class Member<Class, T> {
 public:
     using class_type = Class;
     using member_type = T;
 
     Member(const char* name, member_ptr_t<Class, T> ptr);
-    Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr);
-    Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr);
-
-    Member& addNonConstGetter(nonconst_ref_getter_func_ptr_t<Class, T> nonConstRefGetterPtr);
 
     // get sets methods can be used to add support
     // for getters/setters for members instead of
@@ -63,28 +64,225 @@ public:
     member_ptr_t<Class, T> getPtr() const;
 
     template <typename V,
-        typename = std::enable_if_t<std::is_constructible<T, V>::value>>
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
         void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
 
     const char* getName() const { return name; }
-    bool hasPtr() const { return hasMemberPtr; }
-    bool hasGetter() const { return refGetterPtr || valGetterPtr; }
-    bool hasSetter() const { return refSetterPtr || valSetterPtr; }
-    bool canGetConstRef() const { return hasMemberPtr || refGetterPtr; }
-    bool canGetRef() const { return hasMemberPtr || nonConstRefGetterPtr; }
+    bool hasPtr() const { return true; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return true; }
+
 private:
     const char* name;
     member_ptr_t<Class, T> ptr;
-    bool hasMemberPtr; // first member of class can be nullptr
-                       // so we need this var to know if member ptr is present
+};
 
-    ref_getter_func_ptr_t<Class, T> refGetterPtr;
-    ref_setter_func_ptr_t<Class, T> refSetterPtr;
+// getter/setter (by ref) definition
+template <typename Class, typename T>
+class Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
 
-    val_getter_func_ptr_t<Class, T> valGetterPtr;
-    val_setter_func_ptr_t<Class, T> valSetterPtr;
+    Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr);
 
-    nonconst_ref_getter_func_ptr_t<Class, T> nonConstRefGetterPtr;
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    const T& get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    ref_getter_func_ptr_t<Class, T> getterPtr;
+    ref_setter_func_ptr_t<Class, T> setterPtr;
+};
+
+// getter/setter (by val) definition
+template <typename Class, typename T>
+class Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
+
+    Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr);
+
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    T get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return false; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    val_getter_func_ptr_t<Class, T> getterPtr;
+    val_setter_func_ptr_t<Class, T> setterPtr;
+};
+
+// readonly (by ref) definition
+template <typename Class, typename T>
+class Member<Class, T, ref_getter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
+
+    Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr);
+
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    const T& get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    ref_getter_func_ptr_t<Class, T> getterPtr;
+};
+
+// readonly (by val) definition
+template <typename Class, typename T>
+class Member<Class, T, val_getter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
+
+    Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr);
+
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    T get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    val_getter_func_ptr_t<Class, T> getterPtr;
+};
+
+// set-only (by ref) definition
+template <typename Class, typename T>
+class Member<Class, T, ref_setter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
+
+    Member(const char* name, ref_setter_func_ptr_t<Class, T> setterPtr);
+
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    const T& get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    ref_setter_func_ptr_t<Class, T> setterPtr;
+};
+
+// set-only (by val) definition
+template <typename Class, typename T>
+class Member<Class, T, val_setter_func_ptr_t<Class, T>> {
+public:
+    using class_type = Class;
+    using member_type = T;
+
+    Member(const char* name, val_setter_func_ptr_t<Class, T> getterPtr);
+
+    // get sets methods can be used to add support
+    // for getters/setters for members instead of
+    // direct access to them
+    const T& get(const Class& obj) const;
+    T getCopy(const Class& obj) const;
+    T& getRef(Class& obj) const;
+    member_ptr_t<Class, T> getPtr() const;
+
+    template <typename V,
+        typename = std::enable_if_t<std::is_constructible_v<T, V>>>
+        void set(Class& obj, V&& value) const; // accepts lvalues and rvalues!
+
+    const char* getName() const { return name; }
+    bool hasPtr() const { return false; }
+    bool hasGetter() const { return true; }
+    bool hasSetter() const { return true; }
+    bool canGetConstRef() const { return true; }
+    bool canGetRef() const { return false; }
+
+private:
+    const char* name;
+
+    val_setter_func_ptr_t<Class, T> getterPtr;
 };
 
 // useful function similar to make_pair which is used so you don't have to write this:
@@ -92,13 +290,25 @@ private:
 // member("someName", &SomeClass::someInt);
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, T Class::* ptr);
+auto member(const char* name, member_ptr_t<Class, T> ptr);
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr);
+auto member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr);
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr);
+auto member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr);
+
+template <typename Class, typename T>
+auto member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr);
+
+template <typename Class, typename T>
+auto member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr);
+
+template <typename Class, typename T>
+auto member(const char* name, ref_setter_func_ptr_t<Class, T> setterPtr);
+
+template <typename Class, typename T>
+auto member(const char* name, val_setter_func_ptr_t<Class, T> setterPtr);
 
 } // end of namespace meta
 

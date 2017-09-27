@@ -6,147 +6,271 @@ namespace meta
 template <typename Class, typename T>
 Member<Class, T>::Member(const char* name, member_ptr_t<Class, T> ptr) :
     name(name),
-    ptr(ptr),
-    hasMemberPtr(true),
-    refGetterPtr(nullptr),
-    refSetterPtr(nullptr),
-    valGetterPtr(nullptr),
-    valSetterPtr(nullptr),
-    nonConstRefGetterPtr(nullptr)
+    ptr(ptr)
 { }
 
 template <typename Class, typename T>
-Member<Class, T>::Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr) : 
+Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr) : 
     name(name),
-    ptr(nullptr),
-    hasMemberPtr(false),
-    refGetterPtr(getterPtr),
-    refSetterPtr(setterPtr),
-    valGetterPtr(nullptr),
-    valSetterPtr(nullptr),
-    nonConstRefGetterPtr(nullptr)
+    getterPtr(getterPtr),
+    setterPtr(setterPtr)
 { }
 
 template <typename Class, typename T>
-Member<Class, T>::Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr) :
+Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr) :
     name(name),
-    ptr(nullptr),
-    hasMemberPtr(false),
-    refGetterPtr(nullptr),
-    refSetterPtr(nullptr),
-    valGetterPtr(getterPtr),
-    valSetterPtr(setterPtr),
-    nonConstRefGetterPtr(nullptr)
+    getterPtr(getterPtr),
+    setterPtr(setterPtr)
 { }
 
 template <typename Class, typename T>
-Member<Class, T>& Member<Class, T>::addNonConstGetter(nonconst_ref_getter_func_ptr_t<Class, T> nonConstRefGetterPtr)
-{
-    this->nonConstRefGetterPtr = nonConstRefGetterPtr;
-    return *this;
+Member<Class, T, ref_getter_func_ptr_t<Class, T>>::Member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr) : 
+    name(name),
+    getterPtr(getterPtr)
+{ }
+
+template <typename Class, typename T>
+Member<Class, T, val_getter_func_ptr_t<Class, T>>::Member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr) :
+    name(name),
+    getterPtr(getterPtr)
+{ }
+
+template <typename Class, typename T>
+Member<Class, T, ref_setter_func_ptr_t<Class, T>>::Member(const char* name, ref_setter_func_ptr_t<Class, T> setterPtr) : 
+    name(name),
+    setterPtr(setterPtr)
+{ }
+
+template <typename Class, typename T>
+Member<Class, T, val_setter_func_ptr_t<Class, T>>::Member(const char* name, val_setter_func_ptr_t<Class, T> setterPtr) :
+    name(name),
+    setterPtr(setterPtr)
+{ }
+
+template <typename Class, typename T>
+const T& Member<Class, T>::get(const Class& obj) const {
+    return obj.*ptr;
 }
 
 template <typename Class, typename T>
-const T& Member<Class, T>::get(const Class& obj) const
-{
-    if (refGetterPtr) {
-        return (obj.*refGetterPtr)();
-    } else if (hasMemberPtr) {
-        return obj.*ptr;
-    }
-    throw std::runtime_error("Cannot return const ref to member: no getter or member pointer set");
+const T& Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    return (obj.*getterPtr)();
 }
 
 template <typename Class, typename T>
-T Member<Class, T>::getCopy(const Class& obj) const
-{
-    if (refGetterPtr) {
-        return (obj.*refGetterPtr)();
-    } else if (valGetterPtr) {
-        return (obj.*valGetterPtr)();
-    } else if (hasMemberPtr) {
-        return obj.*ptr;
-    }
-    throw std::runtime_error("Cannot return copy of member: no getter or member pointer set");
+T Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    return (obj.*getterPtr)();
 }
 
 template <typename Class, typename T>
-T& Member<Class, T>::getRef(Class& obj) const
-{
-    if (nonConstRefGetterPtr) {
-        return (obj.*nonConstRefGetterPtr)();
-    } else if(hasMemberPtr) {
-        return obj.*ptr;
-    }
-    throw std::runtime_error("Cannot return ref to member: no getter or member pointer set");
+const T& Member<Class, T, ref_getter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+T Member<Class, T, val_getter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+const T& Member<Class, T, ref_setter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    throw std::runtime_error("Cannot get member: getter is not available");
+}
+
+template <typename Class, typename T>
+const T& Member<Class, T, val_setter_func_ptr_t<Class, T>>::get(const Class& obj) const {
+    throw std::runtime_error("Cannot get member: getter is not available");
+}
+
+template <typename Class, typename T>
+T Member<Class, T>::getCopy(const Class& obj) const {
+    return obj.*ptr;
+}
+
+template <typename Class, typename T>
+T Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+T Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+T Member<Class, T, ref_getter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+T Member<Class, T, val_getter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    return (obj.*getterPtr)();
+}
+
+template <typename Class, typename T>
+T Member<Class, T, ref_setter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    throw std::runtime_error("Cannot get member: getter is not available");
+}
+
+template <typename Class, typename T>
+T Member<Class, T, val_setter_func_ptr_t<Class, T>>::getCopy(const Class& obj) const {
+    throw std::runtime_error("Cannot get member: getter is not available");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T>::getRef(Class& obj) const {
+    return obj.*ptr;
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter can only return by const ref");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter can only return by value");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, ref_getter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter can only return by const ref");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, val_getter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter can only return by value");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, ref_setter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter is not available");
+}
+
+template <typename Class, typename T>
+T& Member<Class, T, val_setter_func_ptr_t<Class, T>>::getRef(Class& obj) const {
+    throw std::runtime_error("Cannot return ref to member: getter is not available");
 }
 
 template <typename Class, typename T>
 member_ptr_t<Class, T> Member<Class, T>::getPtr() const {
-    if (hasPtr()) {
-        return ptr;
-    }
-    throw std::runtime_error("Cannot get pointer to member: it wasn't set");
+    return ptr;
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T> Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have getter and setter");
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T> Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have getter and setter");
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T>  Member<Class, T, ref_getter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have getter by ref");
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T> Member<Class, T, val_getter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have getter by value");
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T> Member<Class, T, ref_setter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have setter");
+}
+
+template <typename Class, typename T>
+member_ptr_t<Class, T> Member<Class, T, val_setter_func_ptr_t<Class, T>>::getPtr() const {
+    throw std::runtime_error("Cannot get pointer to member: only have setter");
 }
 
 template<typename Class, typename T>
 template <typename V, typename>
-void Member<Class, T>::set(Class& obj, V&& value) const
-{
+void Member<Class, T>::set(Class& obj, V&& value) const {
     // TODO: add rvalueSetter?
-    if (refSetterPtr) {
-        (obj.*refSetterPtr)(value);
-    } else if (valSetterPtr) {
-        (obj.*valSetterPtr)(value); // will copy value
-    } else if (hasMemberPtr) {
-        obj.*ptr = value;
-    } else {
-        throw std::runtime_error("Cannot access member: no setter or member pointer set");
-    }
+    obj.*ptr = value;
+}
+
+template<typename Class, typename T>
+template <typename V, typename>
+void Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    (obj.*setterPtr)(value);
+}
+
+template<typename Class, typename T>
+template <typename V, typename>
+void Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    (obj.*setterPtr)(value);
 }
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, T Class::* ptr)
-{
+template <typename V, typename>
+void  Member<Class, T, ref_getter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    throw std::runtime_error("Cannot set member: only have getter");
+}
+
+template <typename Class, typename T>
+template <typename V, typename>
+void Member<Class, T, val_getter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    throw std::runtime_error("Cannot set member: only have getter");
+}
+
+template <typename Class, typename T>
+template <typename V, typename>
+void Member<Class, T, ref_setter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    (obj.*setterPtr)(value);
+}
+
+template <typename Class, typename T>
+template <typename V, typename>
+void Member<Class, T, val_setter_func_ptr_t<Class, T>>::set(Class& obj, V&& value) const {
+    // TODO: add rvalueSetter?
+    (obj.*setterPtr)(value);
+}
+
+template <typename Class, typename T>
+auto member(const char* name, member_ptr_t<Class, T> ptr) {
     return Member<Class, T>(name, ptr);
 }
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr)
-{
-    return Member<Class, T>(name, getterPtr, setterPtr);
+auto member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr, ref_setter_func_ptr_t<Class, T> setterPtr) {
+    return Member<Class, T, ref_getter_func_ptr_t<Class, T>, ref_setter_func_ptr_t<Class, T>>(name, getterPtr, setterPtr);
 }
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr)
-{
-    return Member<Class, T>(name, getterPtr, setterPtr);
+auto member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr, val_setter_func_ptr_t<Class, T> setterPtr) {
+    return Member<Class, T, val_getter_func_ptr_t<Class, T>, val_setter_func_ptr_t<Class, T>>(name, getterPtr, setterPtr);
 }
 
 // read only
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr)
-{
-    return Member<Class, T>(name, getterPtr, nullptr);
+auto member(const char* name, ref_getter_func_ptr_t<Class, T> getterPtr) {
+    return Member<Class, T, ref_getter_func_ptr_t<Class, T>>(name, getterPtr);
 }
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr)
-{
-    return Member<Class, T>(name, getterPtr, nullptr);
+auto member(const char* name, val_getter_func_ptr_t<Class, T> getterPtr) {
+    return Member<Class, T, val_getter_func_ptr_t<Class, T>>(name, getterPtr);
 }
 
 // set only 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, ref_setter_func_ptr_t<Class, T> setterPtr)
-{
-    return Member<Class, T>(name, nullptr, setterPtr);
+auto member(const char* name, ref_setter_func_ptr_t<Class, T> setterPtr) {
+    return Member<Class, T, ref_setter_func_ptr_t<Class, T>>(name, setterPtr);
 }
 
 template <typename Class, typename T>
-Member<Class, T> member(const char* name, val_setter_func_ptr_t<Class, T> setterPtr)
-{
-    return Member<Class, T>(name, nullptr, setterPtr);
+auto member(const char* name, val_setter_func_ptr_t<Class, T> setterPtr) {
+    return Member<Class, T, val_setter_func_ptr_t<Class, T>>(name, setterPtr);
 }
 
 } // end of namespace meta
